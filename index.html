@@ -240,9 +240,26 @@
       previewFrame.src = 'about:blank';
     }
 
+    function isLikelyPdfBase64(value) {
+      if (typeof value !== 'string') return false;
+      const trimmed = value.trim();
+      return trimmed.length > 500 && /^[A-Za-z0-9+/=\r\n]+$/.test(trimmed);
+    }
+
+    function pdfBase64ToDataUrl(pdfBase64) {
+      if (!pdfBase64 || typeof pdfBase64 !== 'string') return null;
+      const clean = pdfBase64.trim();
+      if (!isLikelyPdfBase64(clean)) return null;
+      return `data:application/pdf;base64,${clean}`;
+    }
+
     function normalizeGoogleDriveUrl(url) {
       if (!url || typeof url !== 'string') return url;
       const trimmed = url.trim();
+
+      if (/^data:application\/pdf;base64,/i.test(trimmed)) {
+        return trimmed;
+      }
 
       const match = trimmed.match(/(?:https?:\/\/)?drive\.google\.com\/(?:file\/d\/|uc\?export=download&id=|open\?id=)?([^/&?#]+)/i);
       if (match && match[1]) {
@@ -259,9 +276,35 @@
       return trimmed;
     }
 
-    function triggerDownload(url) {
-      const finalUrl = normalizeGoogleDriveUrl(url);
+    function triggerDownload(urlOrPdfBase64) {
+      const asString = typeof urlOrPdfBase64 === 'string' ? urlOrPdfBase64.trim() : '';
+      const finalUrl = normalizeGoogleDriveUrl(asString);
+
       if (!finalUrl) return false;
+
+      if (isLikelyPdfBase64(asString)) {
+        const blob = awaitPdfBase64Blob(asString);
+        if (!blob) return false;
+
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.style.display = 'none';
+        anchor.setAttribute('download', 'documento-verificado.pdf');
+        document.body.appendChild(anchor);
+
+        try {
+          anchor.click();
+        } catch (error) {
+          window.open(objectUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+        document.body.removeChild(anchor);
+        return true;
+      }
 
       const anchor = document.createElement('a');
       anchor.href = finalUrl;
@@ -279,6 +322,19 @@
 
       document.body.removeChild(anchor);
       return true;
+    }
+
+    function awaitPdfBase64Blob(base64) {
+      try {
+        const binary = atob(base64.replace(/\s+/g, ''));
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([bytes], { type: 'application/pdf' });
+      } catch (error) {
+        return null;
+      }
     }
 
     function showPreview(url) {
@@ -322,7 +378,7 @@
         if (!current || typeof current === 'string') {
           if (typeof current === 'string') {
             const text = current.trim();
-            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
+            if (stringLooksLikeUrl(text) || isLikelyPdfBase64(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
               return text;
             }
           }
@@ -348,7 +404,7 @@
 
           if (isRelevant && typeof value === 'string') {
             const text = value.trim();
-            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
+            if (stringLooksLikeUrl(text) || isLikelyPdfBase64(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
               return text;
             }
           }
@@ -363,7 +419,7 @@
       for (const item of allValues) {
         if (typeof item === 'string') {
           const text = item.trim();
-          if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
+          if (stringLooksLikeUrl(text) || isLikelyPdfBase64(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
             return text;
           }
         }
@@ -439,8 +495,8 @@
         const foundUrl = extracted?.url;
 
         if (response.ok && foundUrl) {
-          const downloadUrl = normalizeGoogleDriveUrl(foundUrl);
-          triggerDownload(downloadUrl);
+          const finalDownloadTarget = normalizeGoogleDriveUrl(foundUrl);
+          triggerDownload(finalDownloadTarget);
           setResult('✅ Documento encontrado y descargado correctamente.', 'success');
           return;
         }
