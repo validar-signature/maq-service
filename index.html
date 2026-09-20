@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificación de Documentos | MAQ‑SERVICE</title>
+  <link rel="icon" href="https://maqservice.cl/favicon.ico">
+  <style>
+    :root {
+      --primary: #d32f2f;
+      --secondary: #1a1a1a;
+      --accent: #0077b6;
+      --bg: #f5f7fa;
+      --radius: 12px;
+      --shadow: 0 8px 30px rgba(0,0,0,0.12);
+      --success: #198754;
+      --error: #d32f2f;
+      --warning: #ff9800;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--secondary);
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 50px 40px;
+      text-align: center;
+      width: 90%;
+      max-width: 560px;
+      animation: fadeIn 0.8s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      width: 200px;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      font-size: 2em;
+      color: var(--primary);
+      margin-bottom: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    p {
+      font-size: 1em;
+      color: #555;
+      margin-bottom: 30px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: var(--radius);
+      font-size: 1em;
+      text-align: center;
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #b71c1c;
+      transform: translateY(-2px);
+    }
+
+    button[disabled] {
+      opacity: 0.7;
+      cursor: wait;
+      transform: none;
+    }
+
+    .result {
+      margin-top: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      display: none;
+      text-align: left;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(0, 119, 182, 0.06);
+      border: 1px solid rgba(0, 119, 182, 0.1);
+      line-height: 1.5;
+    }
+
+    .result.success {
+      color: var(--success);
+      background: rgba(25, 135, 84, 0.08);
+      border-color: rgba(25, 135, 84, 0.15);
+    }
+
+    .result.error {
+      color: var(--error);
+      background: rgba(211, 47, 47, 0.06);
+      border-color: rgba(211, 47, 47, 0.12);
+    }
+
+    .result.warning {
+      color: var(--warning);
+      background: rgba(255, 152, 0, 0.08);
+      border-color: rgba(255, 152, 0, 0.14);
+    }
+
+    .preview {
+      display: none;
+      margin-top: 22px;
+      width: 100%;
+      border: 1px solid #dfe3e8;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fafafa;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .preview iframe {
+      width: 100%;
+      min-height: 500px;
+      border: none;
+      background: white;
+      display: block;
+    }
+
+    .link-btn {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.8em;
+      color: #777;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    @media (max-width: 620px) {
+      .card {
+        padding: 36px 22px;
+      }
+
+      h1 {
+        font-size: 1.6em;
+      }
+
+      .logo {
+        width: 170px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="https://maqservice.cl/wp-content/uploads/2025/06/maqservice-logo-web.png" alt="MAQ‑SERVICE Logo" class="logo">
+    <h1>Verificación de Documentos</h1>
+    <p>Ingrese el <strong>Código de Verificación</strong> que aparece en su certificado MAQ‑SERVICE para validar su autenticidad.</p>
+
+    <form id="verificacionForm" novalidate>
+      <input type="text" id="codigo" placeholder="Ejemplo: CN‑E‑0818‑286" required>
+      <button type="submit" id="submitBtn">Verificar</button>
+    </form>
+
+    <div id="resultado" class="result"></div>
+
+    <div id="previewContainer" class="preview">
+      <iframe id="previewFrame" title="Documento verificado"></iframe>
+    </div>
+  </div>
+
+  <footer>
+    © 2026 MAQ‑SERVICE SpA | Ingeniería y Servicios | <a href="https://maqservice.cl" target="_blank" rel="noopener noreferrer">maqservice.cl</a>
+  </footer>
+
+  <script>
+    const WEBHOOK_URL = 'https://hook.us2.make.com/iq6ps3txx1jaxr91mje7sx47ynbta3kb';
+    const form = document.getElementById('verificacionForm');
+    const codigoInput = document.getElementById('codigo');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultado = document.getElementById('resultado');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewFrame = document.getElementById('previewFrame');
+
+    function setResult(message, type = 'warning') {
+      resultado.textContent = message;
+      resultado.className = 'result ' + type;
+      resultado.style.display = 'block';
+    }
+
+    function hidePreview() {
+      previewContainer.style.display = 'none';
+      previewFrame.src = 'about:blank';
+    }
+
+    function showPreview(url) {
+      if (!url) return;
+      previewFrame.src = url;
+      previewContainer.style.display = 'block';
+    }
+
+    function openInNewTab(url) {
+      if (!url) return false;
+
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (win) {
+        return true;
+      }
+
+      const fallback = document.createElement('a');
+      fallback.href = url;
+      fallback.target = '_blank';
+      fallback.rel = 'noopener noreferrer';
+      fallback.style.display = 'none';
+      document.body.appendChild(fallback);
+      fallback.click();
+      document.body.removeChild(fallback);
+      return true;
+    }
+
+    function stringLooksLikeUrl(value) {
+      return typeof value === 'string' && /^(https?:\/\/|\/|blob:|data:|file:)/i.test(value.trim());
+    }
+
+    function flattenCandidates(value, out = []) {
+      if (!value) return out;
+
+      if (Array.isArray(value)) {
+        value.forEach(item => flattenCandidates(item, out));
+        return out;
+      }
+
+      if (typeof value === 'object') {
+        Object.keys(value).forEach((key) => {
+          const item = value[key];
+          out.push(item);
+          flattenCandidates(item, out);
+        });
+      }
+
+      return out;
+    }
+
+    function extractFirstUrl(payload) {
+      if (!payload) return null;
+
+      const queue = [payload];
+      const seen = new WeakSet();
+
+      while (queue.length) {
+        const current = queue.shift();
+
+        if (!current || typeof current === 'string') {
+          if (typeof current === 'string') {
+            const text = current.trim();
+            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+              return text;
+            }
+          }
+          continue;
+        }
+
+        if (typeof current !== 'object') continue;
+        if (seen.has(current)) continue;
+        seen.add(current);
+
+        if (Array.isArray(current)) {
+          current.forEach(item => queue.push(item));
+          continue;
+        }
+
+        for (const [key, value] of Object.entries(current)) {
+          const lowerKey = String(key).toLowerCase();
+          const isRelevant = [
+            'url', 'href', 'link', 'pdf', 'file', 'archivo', 'document', 'doc', 'download',
+            'path', 'route', 'found', 'result', 'fileurl', 'file_url', 'documenturl', 'document_url'
+          ].some(part => lowerKey.includes(part));
+
+          if (isRelevant && typeof value === 'string') {
+            const text = value.trim();
+            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+              return text;
+            }
+          }
+
+          if (value && typeof value === 'object') {
+            queue.push(value);
+          }
+        }
+      }
+
+      const allValues = flattenCandidates(payload);
+      for (const item of allValues) {
+        if (typeof item === 'string') {
+          const text = item.trim();
+          if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+            return text;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function extractPayload(data) {
+      if (!data) return null;
+
+      const candidates = [
+        data,
+        data?.result,
+        data?.data,
+        data?.response,
+        data?.payload,
+        data?.found,
+        data?.output,
+        data?.document,
+        data?.file,
+        data?.archivo,
+        data?.pdf,
+        data?.url,
+        data?.link,
+        data?.download,
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate) {
+          const foundUrl = extractFirstUrl(candidate);
+          if (foundUrl) return { payload: candidate, url: foundUrl };
+        }
+      }
+
+      return null;
+    }
+
+    async function verificarCodigo(codigo) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verificando...';
+      hidePreview();
+      setResult('Validando código en MAQ‑SERVICE…', 'warning');
+
+      try {
+        const payload = {
+          codigo,
+          cve: codigo,
+          CODIGO: codigo,
+          documentId: codigo,
+          source: 'MAQ-SERVICE',
+          query: codigo
+        };
+
+        const response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (error) {
+          const text = await response.text();
+          data = { raw: text };
+        }
+
+        const extracted = extractPayload(data);
+        const foundUrl = extracted?.url;
+
+        if (response.ok && foundUrl) {
+          showPreview(foundUrl);
+          openInNewTab(foundUrl);
+          setResult('✅ Documento verificado correctamente. Se abrió el archivo asociado al código.', 'success');
+          return;
+        }
+
+        const normalized = JSON.stringify(data || {}).toLowerCase();
+        const notFound = /no encontrado|not found|0 results|sin resultados|documento no existe|codigo no encontrado|not valid|invalid/i.test(normalized);
+
+        if (response.ok && notFound) {
+          setResult('❌ Código no encontrado o documento no válido.', 'error');
+          return;
+        }
+
+        if (response.ok) {
+          setResult('✅ Código recibido correctamente, pero la respuesta no devolvió un documento asociado.', 'warning');
+          return;
+        }
+
+        setResult('❌ No se pudo completar la validación con Make. Intente nuevamente más tarde.', 'error');
+      } catch (error) {
+        console.error(error);
+        setResult('❌ Ocurrió un error en la verificación. Intente nuevamente.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Verificar';
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const codigo = codigoInput.value.trim();
+
+      if (!codigo) {
+        setResult('Por favor ingrese un código válido.', 'error');
+        codigoInput.focus();
+        return;
+      }
+
+      verificarCodigo(codigo);
+    });
+  </script>
+</body>
+</html>
