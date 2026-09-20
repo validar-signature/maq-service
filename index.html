@@ -240,29 +240,51 @@
       previewFrame.src = 'about:blank';
     }
 
+    function normalizeGoogleDriveUrl(url) {
+      if (!url || typeof url !== 'string') return url;
+      const trimmed = url.trim();
+
+      const match = trimmed.match(/(?:https?:\/\/)?drive\.google\.com\/(?:file\/d\/|uc\?export=download&id=|open\?id=)?([^/&?#]+)/i);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+
+      if (/\/file\/d\//i.test(trimmed) && /google\.com/i.test(trimmed)) {
+        const idMatch = trimmed.match(/\/file\/d\/([^/]+)/i);
+        if (idMatch && idMatch[1]) {
+          return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
+        }
+      }
+
+      return trimmed;
+    }
+
+    function triggerDownload(url) {
+      const finalUrl = normalizeGoogleDriveUrl(url);
+      if (!finalUrl) return false;
+
+      const anchor = document.createElement('a');
+      anchor.href = finalUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.style.display = 'none';
+      anchor.setAttribute('download', 'documento-verificado.pdf');
+      document.body.appendChild(anchor);
+
+      try {
+        anchor.click();
+      } catch (error) {
+        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      document.body.removeChild(anchor);
+      return true;
+    }
+
     function showPreview(url) {
       if (!url) return;
       previewFrame.src = url;
       previewContainer.style.display = 'block';
-    }
-
-    function openInNewTab(url) {
-      if (!url) return false;
-
-      const win = window.open(url, '_blank', 'noopener,noreferrer');
-      if (win) {
-        return true;
-      }
-
-      const fallback = document.createElement('a');
-      fallback.href = url;
-      fallback.target = '_blank';
-      fallback.rel = 'noopener noreferrer';
-      fallback.style.display = 'none';
-      document.body.appendChild(fallback);
-      fallback.click();
-      document.body.removeChild(fallback);
-      return true;
     }
 
     function stringLooksLikeUrl(value) {
@@ -300,7 +322,7 @@
         if (!current || typeof current === 'string') {
           if (typeof current === 'string') {
             const text = current.trim();
-            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
               return text;
             }
           }
@@ -320,12 +342,13 @@
           const lowerKey = String(key).toLowerCase();
           const isRelevant = [
             'url', 'href', 'link', 'pdf', 'file', 'archivo', 'document', 'doc', 'download',
-            'path', 'route', 'found', 'result', 'fileurl', 'file_url', 'documenturl', 'document_url'
+            'path', 'route', 'found', 'result', 'fileurl', 'file_url', 'documenturl', 'document_url',
+            'downloadurl', 'download_url', 'file_url', 'archive', 'fileId'
           ].some(part => lowerKey.includes(part));
 
           if (isRelevant && typeof value === 'string') {
             const text = value.trim();
-            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+            if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
               return text;
             }
           }
@@ -340,7 +363,7 @@
       for (const item of allValues) {
         if (typeof item === 'string') {
           const text = item.trim();
-          if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com')) {
+          if (stringLooksLikeUrl(text) || /\.pdf(\?|$)/i.test(text) || text.includes('drive.google.com') || text.includes('dropbox.com') || text.includes('docs.google.com')) {
             return text;
           }
         }
@@ -416,9 +439,9 @@
         const foundUrl = extracted?.url;
 
         if (response.ok && foundUrl) {
-          showPreview(foundUrl);
-          openInNewTab(foundUrl);
-          setResult('✅ Documento verificado correctamente. Se abrió el archivo asociado al código.', 'success');
+          const downloadUrl = normalizeGoogleDriveUrl(foundUrl);
+          triggerDownload(downloadUrl);
+          setResult('✅ Documento encontrado y descargado correctamente.', 'success');
           return;
         }
 
